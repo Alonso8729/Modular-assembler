@@ -72,7 +72,6 @@ static void destroy_mcr(Macro m) {
 static enum line_options line_detector(char *line, Macro *macro,
                                        Trie mcr_search, d_arr mcr_table,
                                        int *macro_flag) {
-  struct macro new_mcr;
   Macro tmp;
   char *token = line; /*char pointer to help us analyze line structure*/
   SKIP_SPACE(token);
@@ -80,10 +79,6 @@ static enum line_options line_detector(char *line, Macro *macro,
     return NULL_LINE;
   if (token[0] == ';')
     return COMMENT_LINE;
-
-  size_t line_length = strlen(line);
-  if (line[line_length - 1] == '\n')
-    line[line_length - 1] = '\0';
 
   token = strstr(line, "endmcro");
   if (token) { /*finished macro definition*/
@@ -119,20 +114,18 @@ static enum line_options line_detector(char *line, Macro *macro,
     return MACRO_DEF;
   }
 
-  token = line;
-  SKIP_SPACE(token);
-  if (token[0] != '\0') {
-    if (line[line_length - 1] == '\n')
-      line[line_length - 1] = '\0';
-  }
+  token = &line[strlen(line) - 1];
+  while (isspace(*token))
+    token--;
+  *(token + 1) = '\0';
 
-  void *is_mcr_exist = find_str(mcr_search->root, token);
-  if (is_mcr_exist) { /*a call to macro*/
-    macro = is_mcr_exist;
-    return MACRO_CALL;
-  }
+  Macro is_mcr_exist = find_str(mcr_search->root, line);
+  *(token + 1) = '\n';
 
-  return REGULAR_LINE;
+  if (!is_mcr_exist) { /*check if macro*/
+    return REGULAR_LINE;
+  }
+  return MACRO_CALL;
 }
 
 const char *preprocess(const char *input_file_name) {
@@ -213,7 +206,6 @@ const char *preprocess(const char *input_file_name) {
         for (i = 0; i < line_count; i++) {
           char *line = get_item(macro->lines, i);
           fputs(line, am_file);
-          fputc('\n', am_file);
         }
       }
 
@@ -221,13 +213,10 @@ const char *preprocess(const char *input_file_name) {
     case REGULAR_LINE:
       if (mcr_flag) { /*inside a macro definition, add line to macro*/
         insert_item(macro->lines, &linebuffer[0]);
-        /*I get a segmentation fault. need to try how to initiallize macro lines
-         * before getting into this line*/
       }
       /*not inside a macro definition*/
       else {
         fputs(linebuffer, am_file);
-        fputc('\n', am_file);
       }
       break;
     }
