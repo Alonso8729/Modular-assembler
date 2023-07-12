@@ -2,41 +2,31 @@
 #include "table.h"
 #include <stddef.h>
 int main() {
-  d_arr symbolArray = create_dynamic_array(sizeof(char *));
-  if (!symbolArray) {
-    printf("Failed to create dynamic array for symbols.\n");
-    return 1;
-  }
+    d_arr array = create_dynamic_array(sizeof(int));
 
-  const char *symbol1 = "MAIN";
-  const char *symbol2 = "LOOP";
-  const char *symbol3 = "END";
-  if (!insert_item(symbolArray, (void *)&symbol1)) {
-    printf("Failed to insert symbol 1.\n");
-    destroy_dynamic_array(symbolArray);
-    return 1;
-  }
-  if (!insert_item(symbolArray, (void *)&symbol2)) {
-    printf("Failed to insert symbol 2.\n");
-    destroy_dynamic_array(symbolArray);
-    return 1;
-  }
-  if (!insert_item(symbolArray, (void *)&symbol3)) {
-    printf("Failed to insert symbol 3.\n");
-    destroy_dynamic_array(symbolArray);
-    return 1;
-  }
+    int value1 = 10;
+    insert_item(array, &value1);
 
-  size_t symbolCount = get_item_count(symbolArray);
-  printf("Symbols:\n");
-  size_t i;
-  for (i = 0; i < symbolCount; i++) {
-    const char *symbol = *(const char **)(((char *)symbolArray->items) +
-                                          (i * symbolArray->item_size));
-    printf("%s\n", symbol);
-  }
+    int value2 = 20;
+    insert_item(array, &value2);
 
-  destroy_dynamic_array(symbolArray);
+    int value3 = 30;
+    insert_item(array, &value3);
 
-  return 0;
+    int* first_item = get_first_item(array);
+    if (first_item != NULL) {
+        printf("First item: %d\n", *first_item);
+    }
+
+    int* last_item = get_last_item(array);
+    if (last_item != NULL) {
+        printf("Last item: %d\n", *last_item);
+    }
+
+    size_t count = get_item_count(array);
+    printf("Item count: %lu\n", (unsigned long)count);
+
+    destroy_dynamic_array(array);
+
+    return 0;
 }

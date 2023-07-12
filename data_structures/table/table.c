@@ -46,6 +46,13 @@ void *insert_item(d_arr arr, void *item) {
   return new_item;
 }
 
+void *get_item(d_arr arr, size_t index) {
+  if (index >= arr->item_count) {
+    return NULL; /*invalid index*/
+  }
+  return (void *)((char *)arr->items + (index * arr->item_size));
+}
+
 size_t get_item_count(d_arr arr) { return arr->item_count; }
 
 void destroy_dynamic_array(d_arr array) {

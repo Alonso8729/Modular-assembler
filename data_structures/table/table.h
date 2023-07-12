@@ -37,13 +37,18 @@ void *insert_item(d_arr arr, void *item);
 size_t get_item_count(d_arr arr);
 
 /**
+ * @brief Get the first item pointer
+ *
+ * @param arr
+ *@param i index of item
+ * @return void* pointer to the first item
+ */
+void *get_item(d_arr arr, size_t i);
+
+/**
  * @brief deallocate the items in the dynamic array and the array pointer
  *
  */
 void destroy_dynamic_array(d_arr);
 
 #endif
-
-
-
-

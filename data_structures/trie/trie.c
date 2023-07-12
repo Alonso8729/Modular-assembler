@@ -33,9 +33,6 @@ trie_node create_node() {
   trie_node node = calloc(1, sizeof(struct prefix_tree_node));
   node->end_of_str = NULL;
   int i;
-  for (i = 0; i < ASCII_CHARS_NUM; i++) {
-    (node->child[i]) = NULL;
-  }
   return node;
 }
 

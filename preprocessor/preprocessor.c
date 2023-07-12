@@ -32,6 +32,7 @@ enum line_options {
   MACRO_DEF,
   MACRO_END,
   MACRO_CALL,
+  MACRO_REDEFINION,
   REGULAR_LINE
 };
 
@@ -48,8 +49,15 @@ static void *create_macro(const char *m_name) {
     printf("Memory allocation failed");
     return NULL;
   }
-  strcpy(mcr->mcr_name, m_name);
+  if (m_name)
+    strcpy(mcr->mcr_name, m_name);
+  else
+    mcr->mcr_name[0] = '\0';
   mcr->lines = create_dynamic_array(sizeof(void *));
+  if (!mcr->lines) {
+    free(mcr);
+    return NULL;
+  }
   return mcr;
 }
 
@@ -62,53 +70,79 @@ static void destroy_mcr(Macro m) {
 }
 
 static enum line_options line_detector(char *line, Macro *macro,
-                                       Trie mcr_search, d_arr mcr_table) {
+                                       Trie mcr_search, d_arr mcr_table,
+                                       int *macro_flag) {
+  struct macro new_mcr;
+  Macro tmp;
   char *token = line; /*char pointer to help us analyze line structure*/
   SKIP_SPACE(token);
   if (token[0] == '\0' || token[0] == '\n')
     return NULL_LINE;
-  else if (token[0] == ';')
+  if (token[0] == ';')
     return COMMENT_LINE;
-  else if (strncmp(token, "mcro", 4) == 0 &&
-           isspace(token[4])) { /*macro defination*/
-    token += 4;
+
+  size_t line_length = strlen(line);
+  if (line[line_length - 1] == '\n')
+    line[line_length - 1] = '\0';
+
+  token = strstr(line, "endmcro");
+  if (token) { /*finished macro definition*/
+    line = token;
+    return MACRO_END;
+  }
+
+  token = strstr(line, "mcro");
+  if (token) {         /*getting inside macro defination*/
+    token += 4;        /*token is out of the string "mcro"*/
     SKIP_SPACE(token); /*skip to the macro name first character*/
-    const char *mcro_name = token;
     /*find the end of the mcro_name*/
-    token = strpbrk(mcro_name, SPACE_CHARS);
+    line = token;
+    token = strpbrk(line, SPACE_CHARS);
     /*eliminate white spaces from macro name*/
     if (token != NULL) {
       *token = '\0';
     }
-    Macro m = create_macro(mcro_name);
+    /*assining macro name*/
+    const char *mcro_name = line;
+    /*checking if already defined*/
+    tmp = find_str(mcr_search->root, mcro_name);
+    if (tmp) { /*macro already exist*/
+      return MACRO_REDEFINION;
+    }
+    /**strcpy(new_mcr.mcr_name, mcro_name);**/
     /*inserting the new macro to the macro_table and macro lookup trie*/
-    insert_to_trie(m->mcr_name, mcr_search->root, insert_item(mcr_table, m));
-    *macro = m;
+    *macro = create_macro(mcro_name);
+    insert_to_trie((*macro)->mcr_name, mcr_search->root,
+                   insert_item(mcr_table, *macro));
+    /**macro = insert_item(mcr_table, &new_mcr);
+    insert_to_trie(new_mcr.mcr_name, mcr_search->root, (*macro));*/
     return MACRO_DEF;
-  } else if (strncmp(token, "endmcro", 7) == 0 && isspace(token[7])) {
-    *macro = NULL; /*flag off: we are not inside a macro definition*/
-    return MACRO_END;
   }
-  const char *mcro_name = token;
-  /*find the end of the mcro_name*/
-  token = strpbrk(mcro_name, SPACE_CHARS);
-  /*ensure macro name has no white spaces*/
-  if (!token) {
-    *token = '\0';
+
+  token = line;
+  SKIP_SPACE(token);
+  if (token[0] != '\0') {
+    if (line[line_length - 1] == '\n')
+      line[line_length - 1] = '\0';
   }
-  void *is_mcr_exist = find_str(mcr_search->root, mcro_name);
-  if (is_mcr_exist) { /*we find the macro*/
-    *macro = is_mcr_exist;
+
+  void *is_mcr_exist = find_str(mcr_search->root, token);
+  if (is_mcr_exist) { /*a call to macro*/
+    macro = is_mcr_exist;
     return MACRO_CALL;
   }
+
   return REGULAR_LINE;
 }
 
 const char *preprocess(const char *input_file_name) {
   /*variable declaration*/
-  Macro *macro;
-  Trie mcr_search;
-  d_arr macro_table;
+  Macro macro = NULL;
+  Trie mcr_search = NULL;
+  int mcr_flag;
+  d_arr macro_table = NULL;
+  enum line_options line_type;
+  char linebuffer[MAX_LINE] = {0};
   /*appending the appropriate extensions for .as and.am files*/
   size_t file_name_len = strlen(input_file_name);
   char *as_file_name;
@@ -123,77 +157,90 @@ const char *preprocess(const char *input_file_name) {
 
   /*open .as file for reading and .am file for writing*/
   FILE *as_file = fopen(as_file_name, "r");
-  if (!as_file) {
-    printf("Failed to open the file\n");
+  FILE *am_file = fopen(am_file_name, "w");
+  if (!as_file || !am_file) {
+    perror("Failed to open the .as file\n");
+    free(am_file_name);
     free(as_file_name);
     return NULL;
   }
-  FILE *am_file = fopen(am_file_name, "w");
-  if (!am_file) {
-    printf("Failed to open the file\n");
+
+  /*creating data structures*/
+  macro = create_macro(NULL);
+  mcr_search = create_trie();
+  if (!mcr_search) {
+    printf("Failed to create trie\n");
+    destroy_dynamic_array(macro_table);
     fclose(as_file);
+    fclose(am_file);
+    free(am_file_name);
+    free(as_file_name);
     return NULL;
   }
-  /*creating data structures*/
-  macro = NULL;
-  mcr_search = create_trie();
   macro_table = create_dynamic_array(sizeof(Macro));
-  if (!mcr_search || !macro_table) {
-    printf("Failed to create data structures\n");
-    destroy_dynamic_array(macro_table);
+  if (!macro_table) {
+    printf("Failed to create dynamic array\n");
     trie_destroy(mcr_search);
     fclose(as_file);
     fclose(am_file);
+    free(am_file_name);
+    free(as_file_name);
     return NULL;
   }
 
-  enum line_options line_type;
-  char linebuffer[MAX_LINE] = {0};
   while (fgets(linebuffer, sizeof(linebuffer), as_file)) {
-    line_type = line_detector(linebuffer, macro, mcr_search, macro_table);
+    line_type =
+        line_detector(linebuffer, &macro, mcr_search, macro_table, &mcr_flag);
     switch (line_type) {
     case COMMENT_LINE:
+      break;
     case NULL_LINE:
       break;
     case MACRO_DEF:
+      mcr_flag = 1;
       break;
     case MACRO_END:
+      mcr_flag = 0;
+      break;
+    case MACRO_REDEFINION:
+      printf("Macro has already been defined\n");
       break;
     case MACRO_CALL:
-      if (macro) { /*checking if the current macro is valid so we can append
+      if (!mcr_flag) { /*checking if the current macro is valid so we can append
                         line to the am file*/
-        void *first_line = get_first_item((*macro)->lines);
-        void *last_line = get_last_item((*macro)->lines);
-        void *curr_line = first_line;
-        while (&curr_line <= &last_line) {
-          char *line = *(char **)curr_line;
+        int line_count = get_item_count(macro->lines);
+        int i;
+        for (i = 0; i < line_count; i++) {
+          char *line = get_item(macro->lines, i);
           fputs(line, am_file);
-          curr_line++;
+          fputc('\n', am_file);
         }
       }
 
-      *macro = NULL; /*turn the flag off*/
       break;
     case REGULAR_LINE:
-      if (macro) { /*inside a macro definition, add line to macro*/
-        insert_item((*macro)->lines, linebuffer);
+      if (mcr_flag) { /*inside a macro definition, add line to macro*/
+        insert_item(macro->lines, &linebuffer[0]);
+        /*I get a segmentation fault. need to try how to initiallize macro lines
+         * before getting into this line*/
       }
       /*not inside a macro definition*/
       else {
         fputs(linebuffer, am_file);
+        fputc('\n', am_file);
       }
       break;
     }
   }
 
   /*deallocate memory from data structures and file pointers*/
-  destroy_mcr(*macro);
+
+  destroy_mcr(macro);
+  free(as_file_name);
   destroy_dynamic_array(macro_table);
   trie_destroy(mcr_search);
-  /*free(as_file);*/
   fclose(as_file);
   fclose(am_file);
-  free(as_file);
 
   return am_file_name;
 }
