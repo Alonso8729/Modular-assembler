@@ -1,5 +1,5 @@
-#ifndef lexer
-#define lexer
+#ifndef __LEXER_H_
+#define __LEXER_H_
 
 #define MAX_NUMBER_SIZE 100
 
@@ -56,6 +56,8 @@ struct lexer_ast {              /* for each line the lexer_ast returns an abstra
     }operation_and_directive;
 };
 
-typedef struct lexer_ast;
+typedef struct lexer_ast ast;
 
 lexer_ast lexer_get_ast(char *line);
+
+#endif
