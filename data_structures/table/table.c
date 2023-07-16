@@ -40,8 +40,7 @@ void *insert_item(d_arr arr, void *item) {
     arr->items = tmp;
   }
   /*use casting to be able to use aritimetics*/
-  void *new_item = (char *)arr->items + (arr->item_count * arr->item_size);
-  /*need to figure out how to get the correct n for the current line*/
+  void *new_item = ((char *)arr->items) + (arr->item_count * arr->item_size);
   memcpy(new_item, item, arr->item_size);
   arr->item_count++;
 

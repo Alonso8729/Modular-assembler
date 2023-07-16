@@ -21,7 +21,6 @@ static void trie_free_helper(trie_node node) {
   if (node == NULL)
     return;
   int i;
-
   for (i = 0; i < ASCII_CHARS_NUM; i++) {
     if (!node->child[i])
       trie_free_helper(node->child[i]);
@@ -32,7 +31,6 @@ static void trie_free_helper(trie_node node) {
 trie_node create_node() {
   trie_node node = calloc(1, sizeof(struct prefix_tree_node));
   node->end_of_str = NULL;
-  int i;
   return node;
 }
 
@@ -77,7 +75,6 @@ void *find_str(trie_node root, const char *str) {
 }
 
 void trie_destroy(Trie t) {
-
   trie_free_helper(t->root);
   free(t);
 }

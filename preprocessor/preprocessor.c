@@ -38,7 +38,8 @@ enum line_options {
 
 struct macro {
   char mcr_name[1 + MAX_MCR_NAME]; /*extra char for '/0'*/
-  d_arr lines;
+  char **lines;
+  int lines_counter;
 };
 
 typedef struct macro *Macro;
@@ -53,11 +54,8 @@ static void *create_macro(const char *m_name) {
     strcpy(mcr->mcr_name, m_name);
   else
     mcr->mcr_name[0] = '\0';
-  mcr->lines = create_dynamic_array(sizeof(void *));
-  if (!mcr->lines) {
-    free(mcr);
-    return NULL;
-  }
+  mcr->lines_counter = 0;
+  mcr->lines=NULL;
   return mcr;
 }
 
@@ -65,7 +63,12 @@ static void destroy_mcr(Macro m) {
   if (!m)
     return;
   Macro tmp = m;
-  destroy_dynamic_array(tmp->lines);
+  int line_count = m->lines_counter;
+  int i;
+  for (i = 0; i < line_count; i++) {
+    free(m->lines[i]); /* Free the memory allocated for each line*/
+  }
+  free(m->lines); /* Free the memory allocated for the lines array */
   free(tmp);
 }
 
@@ -132,7 +135,7 @@ const char *preprocess(const char *input_file_name) {
   /*variable declaration*/
   Macro macro = NULL;
   Trie mcr_search = NULL;
-  int mcr_flag;
+  int mcr_flag = 0;
   d_arr macro_table = NULL;
   enum line_options line_type;
   char linebuffer[MAX_LINE] = {0};
@@ -201,18 +204,30 @@ const char *preprocess(const char *input_file_name) {
     case MACRO_CALL:
       if (!mcr_flag) { /*checking if the current macro is valid so we can append
                         line to the am file*/
-        int line_count = get_item_count(macro->lines);
         int i;
-        for (i = 0; i < line_count; i++) {
-          char *line = get_item(macro->lines, i);
-          fputs(line, am_file);
+        for (i = 0; i < macro->lines_counter; i++) {
+          fputs(macro->lines[i], am_file);
         }
       }
 
       break;
     case REGULAR_LINE:
       if (mcr_flag) { /*inside a macro definition, add line to macro*/
-        insert_item(macro->lines, &linebuffer[0]);
+        char *new_line;
+        new_line = malloc(strlen(linebuffer) + 1);
+        strcpy(new_line, linebuffer);
+        if (!new_line) {
+          printf("Memory allocation failed\n");
+          exit(0);
+        }
+        macro->lines =
+            realloc(macro->lines, (macro->lines_counter + 1) * sizeof(char *));
+        if (!macro->lines) {
+          printf("Memory allocation failed\n");
+          exit(0);
+        }
+        macro->lines[macro->lines_counter] = new_line;
+        macro->lines_counter++;
       }
       /*not inside a macro definition*/
       else {
@@ -220,6 +235,7 @@ const char *preprocess(const char *input_file_name) {
       }
       break;
     }
+    memset(linebuffer, 0, sizeof(linebuffer));
   }
 
   /*deallocate memory from data structures and file pointers*/
