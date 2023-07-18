@@ -5,6 +5,7 @@
 
 struct lexer_ast {              /* for each line the lexer_ast returns an abstract syntax tree which represents a structure for a given line */
     char ast_errors[300];       /* error messages */
+    char* label_name;
     enum {
         ast_operation,
         ast_directive
@@ -48,6 +49,11 @@ struct lexer_ast {              /* for each line the lexer_ast returns an abstra
                 ast_op_stop
             }ast_operation_all;
         }ast_operations;
+        enum{
+            op_is_const_num = 1,
+            op_is_label = 3,
+            op_is_register = 5
+        }ast_operand_options[2];
         union {
             int instant_addressing; /* 1 */
             int direct_addressing;  /* 3 */
@@ -58,6 +64,6 @@ struct lexer_ast {              /* for each line the lexer_ast returns an abstra
 
 typedef struct lexer_ast ast;
 
-lexer_ast lexer_get_ast(char *line);
+ast lexer_get_ast(char *line);
 
 #endif
