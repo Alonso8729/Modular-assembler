@@ -8,9 +8,7 @@
  *
  */
 #include "trie.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
 
 /**
  * @brief helper function to deallocate all nodes memory in recurssion

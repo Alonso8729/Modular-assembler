@@ -1,6 +1,10 @@
 #ifndef _TABLE_H
 #define _TABLE_H
 #include <stddef.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct dynamic_array {
   void *items;

@@ -8,10 +8,6 @@
  *
  */
 #include "table.h"
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 d_arr create_dynamic_array(size_t item_size) {
   d_arr da = malloc(sizeof(struct dynamic_array));

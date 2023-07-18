@@ -5,6 +5,9 @@
 
 #ifndef __TRIE_H_
 #define __TRIE_H_
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #define BASE_CHAR ' ' /*first usable char in the ASCII TABLE*/
 #define ASCII_CHARS_NUM 95
 
