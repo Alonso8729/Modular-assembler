@@ -8,7 +8,8 @@ struct lexer_ast {              /* for each line the lexer_ast returns an abstra
     char* label_name;
     enum {
         ast_operation,
-        ast_directive
+        ast_directive,
+        ast_empty_line 
     }ast_options;
     union {
         struct {
@@ -50,20 +51,21 @@ struct lexer_ast {              /* for each line the lexer_ast returns an abstra
             }ast_operation_all;
         }ast_operations;
         enum{
+            no_op=0,
             op_is_const_num = 1,
             op_is_label = 3,
             op_is_register = 5
         }ast_operand_options[2];
         union {
-            int instant_addressing; /* 1 */
-            int direct_addressing;  /* 3 */
-            char * direct_register_addressing;  /* 5 */
+            int instant_addressing; 
+            int direct_addressing;  
+            char * direct_register_addressing;  
         }ast_operation_operands[2];
     }operation_and_directive;
 };
 
-typedef struct lexer_ast ast;
+typedef struct lexer_ast Ast;
 
-ast lexer_get_ast(char *line);
+Ast lexer_get_ast(char *line);
 
 #endif
