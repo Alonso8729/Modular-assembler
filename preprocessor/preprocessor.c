@@ -73,13 +73,10 @@ static enum line_options line_detector(char *line, Macro *macro,
     if (tmp) { /*macro already exist*/
       return MACRO_REDEFINION;
     }
-    /**strcpy(new_mcr.mcr_name, mcro_name);**/
     /*inserting the new macro to the macro_table and macro lookup trie*/
     *macro = create_macro(mcro_name);
     insert_to_trie((*macro)->mcr_name, mcr_search->root,
                    insert_item(mcr_table, *macro));
-    /**macro = insert_item(mcr_table, &new_mcr);
-    insert_to_trie(new_mcr.mcr_name, mcr_search->root, (*macro));*/
     return MACRO_DEF;
   }
 
@@ -205,7 +202,6 @@ const char *preprocess(const char *input_file_name) {
   }
 
   /*deallocate memory from data structures and file pointers*/
-
   destroy_mcr(macro);
   free(as_file_name);
   destroy_dynamic_array(macro_table);

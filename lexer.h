@@ -2,10 +2,10 @@
 #define __LEXER_H_
 
 #define MAX_NUMBER_SIZE 100
-
+#define MAX_NAME_SIZE 32 /*+1 for the '\0' char*/
 struct lexer_ast {              /* for each line the lexer_ast returns an abstract syntax tree which represents a structure for a given line */
     char ast_errors[300];       /* error messages */
-    char* label_name;
+    char label_name[MAX_NAME_SIZE];
     enum {
         ast_operation,
         ast_directive,
@@ -51,15 +51,15 @@ struct lexer_ast {              /* for each line the lexer_ast returns an abstra
             }ast_operation_all;
         }ast_operations;
         enum{
-            no_op=0,
+            no_op = 0,
             op_is_const_num = 1,
             op_is_label = 3,
             op_is_register = 5
         }ast_operand_options[2];
-        union {
-            int instant_addressing; 
-            int direct_addressing;  
-            char * direct_register_addressing;  
+        union { 
+            char * label_name; 
+            int constant_num; 
+            int reg_num; 
         }ast_operation_operands[2];
     }operation_and_directive;
 };
