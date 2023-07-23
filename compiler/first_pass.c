@@ -1,5 +1,4 @@
 #include "assembler.h"
-#include <string.h>
 
 static void add_to_extern_table(obj_file *obj, unsigned short address,
                                 char *extern_name) {

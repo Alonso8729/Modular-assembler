@@ -1,6 +1,8 @@
 #include "assembler.h"
-obj_file* second_pass(obj_file* obj, FILE *am_file) {
-  unsigned short machine_word;
+
+obj_file *second_pass(obj_file *obj, FILE *am_file) {
+  unsigned short binary_code;
+  machine_word *m_word;
   int i;
   int data_size;
   Ast ast;
@@ -15,12 +17,13 @@ obj_file* second_pass(obj_file* obj, FILE *am_file) {
     case ast_operation:
       /*first we encode the first operation word, which is common for all
        * operation lines, using masking*/
-      machine_word = ast.operation_and_directive.ast_operand_options[1]
-                     << 2; /*destination operand*/
-      machine_word |=
+      binary_code = ast.operation_and_directive.ast_operand_options[1]
+                    << 2; /*destination operand*/
+      binary_code |=
           ast.operation_and_directive.ast_operations.ast_operation_all << 5;
-      machine_word |= ast.operation_and_directive.ast_operand_options[0] << 9;
-      insert_item((*obj)->code_image, &machine_word);
+      binary_code |= ast.operation_and_directive.ast_operand_options[0] << 9;
+      m_word = create_machine_word(binary_code);
+      insert_item((*obj)->code_image, m_word);
 
       /*if both operands are register we combine them into one binary machine
      word*/
@@ -28,26 +31,30 @@ obj_file* second_pass(obj_file* obj, FILE *am_file) {
               op_is_register &&
           ast.operation_and_directive.ast_operand_options[1] ==
               op_is_register) {
-        machine_word =
+        binary_code =
             ast.operation_and_directive.ast_operation_operands[1].reg_num << 2;
-        machine_word |=
+        binary_code |=
             ast.operation_and_directive.ast_operation_operands[0].reg_num << 7;
-        insert_item((*obj)->code_image, &machine_word);
+        m_word = create_machine_word(binary_code);
+        insert_item((*obj)->code_image, m_word);
       } else { /*for every other operands combination, we are going to loop the
                   operand's operands twice */
         for (i = 0; i < OP_MAX_NUM; i++) {
           switch (ast.operation_and_directive.ast_operand_options[i]) {
           case op_is_register:
-            machine_word =
+            binary_code =
                 ast.operation_and_directive.ast_operation_operands[i].reg_num
                 << 7;
-            insert_item((*obj)->code_image, &machine_word);
+            m_word = create_machine_word(binary_code);
+            insert_item((*obj)->code_image, m_word);
             break;
 
           case op_is_const_num:
-            machine_word = ast.operation_and_directive.ast_operation_operands[i]
-                               .constant_num
-                           << 2;
+            binary_code = ast.operation_and_directive.ast_operation_operands[i]
+                              .constant_num
+                          << 2;
+            m_word = create_machine_word(binary_code);
+            insert_item((*obj)->code_image, m_word);
             break;
 
           case op_is_label:
@@ -57,12 +64,14 @@ obj_file* second_pass(obj_file* obj, FILE *am_file) {
                              .label_name);
             if (does_sym_exist) {
               if (does_sym_exist->symbol_types == external) {
-                machine_word = 1;
-                insert_item((*obj)->code_image, &machine_word);
+                binary_code = 1;
+                m_word = create_machine_word(binary_code);
+                insert_item((*obj)->code_image, m_word);
               } else if (does_sym_exist->symbol_types != entry) {
-                machine_word = (unsigned short)does_sym_exist->address << 2;
-                machine_word |= 2; /*Relocatable*/
-                insert_item((*obj)->code_image, &machine_word);
+                binary_code = (unsigned short)does_sym_exist->address << 2;
+                binary_code |= 2; /*Relocatable*/
+                m_word = create_machine_word(binary_code);
+                insert_item((*obj)->code_image, m_word);
               }
             } else {
               /*PRINT ERROR The label %s is used but not defined*/
@@ -86,9 +95,10 @@ obj_file* second_pass(obj_file* obj, FILE *am_file) {
         data_size = ast.operation_and_directive.ast_directive.directive_operands
                         .data.data_count;
         for (i = 0; i < data_size; i++) {
-          machine_word = ast.operation_and_directive.ast_directive
-                             .directive_operands.data.data[i];
-          insert_item((*obj)->data_image, &machine_word);
+          binary_code = ast.operation_and_directive.ast_directive
+                            .directive_operands.data.data[i];
+          m_word = create_machine_word(binary_code);
+          insert_item((*obj)->data_image, m_word);
         }
         break;
 
@@ -97,11 +107,13 @@ obj_file* second_pass(obj_file* obj, FILE *am_file) {
                         .string);
         while (*str) { /*each character is a binary code word inserted to the
                          data section*/
-          machine_word = *str;
-          insert_item((*obj)->data_image, &machine_word);
+          binary_code = *str;
+          m_word = create_machine_word(binary_code);
+          insert_item((*obj)->data_image, m_word);
         }
-        machine_word = 0;
-        insert_item((*obj)->data_image, &machine_word);
+        binary_code = 0;
+        m_word = create_machine_word(binary_code);
+        insert_item((*obj)->data_image, m_word);
 
         break;
 
