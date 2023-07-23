@@ -1,0 +1,122 @@
+#include "assembler.h"
+obj_file* second_pass(obj_file* obj, FILE *am_file) {
+  unsigned short machine_word;
+  int i;
+  int data_size;
+  Ast ast;
+  char line_buffer[MAX_LINE] = {0};
+  struct symbol *does_sym_exist = {0};
+  struct symbol tmp_symbol = {0};
+  char str[MAX_LINE];
+  int comp_error_flag = 0;
+  while (fgets(line_buffer, MAX_LINE, am_file)) {
+    ast = lexer_get_ast(line_buffer);
+    switch (ast.ast_options) {
+    case ast_operation:
+      /*first we encode the first operation word, which is common for all
+       * operation lines, using masking*/
+      machine_word = ast.operation_and_directive.ast_operand_options[1]
+                     << 2; /*destination operand*/
+      machine_word |=
+          ast.operation_and_directive.ast_operations.ast_operation_all << 5;
+      machine_word |= ast.operation_and_directive.ast_operand_options[0] << 9;
+      insert_item((*obj)->code_image, &machine_word);
+
+      /*if both operands are register we combine them into one binary machine
+     word*/
+      if (ast.operation_and_directive.ast_operand_options[0] ==
+              op_is_register &&
+          ast.operation_and_directive.ast_operand_options[1] ==
+              op_is_register) {
+        machine_word =
+            ast.operation_and_directive.ast_operation_operands[1].reg_num << 2;
+        machine_word |=
+            ast.operation_and_directive.ast_operation_operands[0].reg_num << 7;
+        insert_item((*obj)->code_image, &machine_word);
+      } else { /*for every other operands combination, we are going to loop the
+                  operand's operands twice */
+        for (i = 0; i < OP_MAX_NUM; i++) {
+          switch (ast.operation_and_directive.ast_operand_options[i]) {
+          case op_is_register:
+            machine_word =
+                ast.operation_and_directive.ast_operation_operands[i].reg_num
+                << 7;
+            insert_item((*obj)->code_image, &machine_word);
+            break;
+
+          case op_is_const_num:
+            machine_word = ast.operation_and_directive.ast_operation_operands[i]
+                               .constant_num
+                           << 2;
+            break;
+
+          case op_is_label:
+            does_sym_exist =
+                find_str((*obj)->symbol_search->root,
+                         ast.operation_and_directive.ast_operation_operands[i]
+                             .label_name);
+            if (does_sym_exist) {
+              if (does_sym_exist->symbol_types == external) {
+                machine_word = 1;
+                insert_item((*obj)->code_image, &machine_word);
+              } else if (does_sym_exist->symbol_types != entry) {
+                machine_word = (unsigned short)does_sym_exist->address << 2;
+                machine_word |= 2; /*Relocatable*/
+                insert_item((*obj)->code_image, &machine_word);
+              }
+            } else {
+              /*PRINT ERROR The label %s is used but not defined*/
+              printf("The label %s is used but not defined\n",
+                     ast.operation_and_directive.ast_operation_operands[i]
+                         .label_name);
+
+              comp_error_flag = 1;
+            }
+            break;
+
+          case no_op:
+            break;
+          }
+        }
+      }
+      break;
+    case ast_directive:
+      switch (ast.operation_and_directive.ast_directive.ast_directive_all) {
+      case ast_directive_data:
+        data_size = ast.operation_and_directive.ast_directive.directive_operands
+                        .data.data_count;
+        for (i = 0; i < data_size; i++) {
+          machine_word = ast.operation_and_directive.ast_directive
+                             .directive_operands.data.data[i];
+          insert_item((*obj)->data_image, &machine_word);
+        }
+        break;
+
+      case ast_directive_string:
+        strcpy(str, ast.operation_and_directive.ast_directive.directive_operands
+                        .string);
+        while (*str) { /*each character is a binary code word inserted to the
+                         data section*/
+          machine_word = *str;
+          insert_item((*obj)->data_image, &machine_word);
+        }
+        machine_word = 0;
+        insert_item((*obj)->data_image, &machine_word);
+
+        break;
+
+      case ast_directive_entry:
+        break;
+
+      case ast_directive_extern:
+        break;
+      }
+      break;
+
+    case ast_empty_line:
+      break;
+    }
+  }
+
+  return comp_error_flag == 0 ? obj : NULL;
+}
