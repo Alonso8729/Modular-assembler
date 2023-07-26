@@ -1,6 +1,6 @@
+#include "first_pass.h"
 #include "assembler.h"
-
-static void add_to_extern_table(obj_file *obj, unsigned short address,
+static void add_to_extern_table(obj_file *obj,short address,
                                 char *extern_name) {
   int i;
   obj_file curr_obj = *obj;
@@ -15,13 +15,11 @@ static void add_to_extern_table(obj_file *obj, unsigned short address,
     }
   }
   /*adding a new item to the extern table*/
-  struct extern_table *new_ext;
-  strcpy(new_ext->extern_name, extern_name);
-  /*need to check if creating new array is necessery, because later on
-  constructors will be added*/
-  new_ext->call_address = create_dynamic_array(sizeof(unsigned short));
+  extern_symbol* new_ext = create_extern_symbol(extern_name, address);
+  new_ext->call_address = create_dynamic_array(sizeof(short));
   insert_item(new_ext->call_address, &address);
   insert_item(curr_obj->extern_table, &new_ext);
+  return;
 }
 
 /*
@@ -195,5 +193,6 @@ int first_pass(FILE *am_file, obj_file obj) {
     line_counter++;
   }
 
-  return comp_error_flag;
+  /*return obj file only if compilation succeeded*/
+  return comp_error_flag == 0 ? 1 : 0;
 }

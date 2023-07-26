@@ -6,11 +6,11 @@
 /**
  * @brief 
  * 
- * @param obj 
- * @param am_file 
- * @return obj_file 
+ * @param obj object file
+ * @param am_file a pointer to am file
+ * @return return 1 file if compilation succeeded,otherwise return 0 
  */
-obj_file second_pass(obj_file obj, FILE *am_file);
+int second_pass(obj_file obj, FILE *am_file);
 
 
 

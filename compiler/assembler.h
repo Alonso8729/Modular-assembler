@@ -6,6 +6,8 @@
 #include "../data_structures/trie/trie.h"
 #define OP_MAX_NUM 2
 #define BASE_ADDRESS 100
+#define MAX_MEMORY 1024
+#define MACHINE_WORD_SIZE 12
 /**
  * @brief 
  * 
@@ -22,7 +24,7 @@ typedef struct object_file* obj_file;
 
 struct symbol{
     char symbol_name[MAX_NAME_SIZE];
-    unsigned short address;
+    short address;
     unsigned short declared_line;
     enum{
         entry,
@@ -41,14 +43,14 @@ struct extern_table{
     char extern_name[MAX_NAME_SIZE];
     d_arr call_address;
 };
-/* not sure if needed
-struct extern_symbol{
+
+typedef struct extern_symbol{
     char extern_name[MAX_NAME_SIZE];
     d_arr call_address;
-};  */
+}extern_symbol;  
 
 typedef struct machine_word{
-    unsigned short binary_code;
+    short binary_code;
 } machine_word;
 
 /**
@@ -60,7 +62,7 @@ typedef struct machine_word{
  * @param declared_line 
  * @return struct symbol* 
  */
-struct symbol* create_symbol(char sym_name[MAX_NAME_SIZE], unsigned short address ,int symbol_type, int declared_line);
+struct symbol* create_symbol(char sym_name[MAX_NAME_SIZE], short address ,int symbol_type, int declared_line);
 
 /**
  * @brief Create a machine word object
@@ -68,7 +70,7 @@ struct symbol* create_symbol(char sym_name[MAX_NAME_SIZE], unsigned short addres
  * @param binary_code 
  * @return machine_word* 
  */
-machine_word* create_machine_word(unsigned short binary_code);
+machine_word* create_machine_word(short binary_code);
 /**
  * @brief 
  * 
@@ -76,6 +78,15 @@ machine_word* create_machine_word(unsigned short binary_code);
  * @param file_names 
  * @return object_file 
  */
+
+/**
+ * @brief Create a extern symbol object
+ * 
+ * @param sym_name 
+ * @param address 
+ * @return struct extern_symbol* 
+ */
+ struct extern_symbol* create_extern_symbol(char sym_name[MAX_NAME_SIZE],short address);
 
 /**
  * @brief Create an object file object
@@ -109,7 +120,7 @@ void free_obj_file(obj_file);
  * @param file_names 
  * @return struct object_file 
  */
-struct object_file compile_program(int file_count,char** file_names);
+int compile_program(int file_count,char** file_names);
 
 /**
  * @brief 
@@ -117,9 +128,15 @@ struct object_file compile_program(int file_count,char** file_names);
  * @param obj 
  * @return int return 0 if there is no error, otherwise return 1
  */
-int check_entry_definition(obj_file obj);
+static int check_entry_definition(obj_file obj);
 
-
+/**
+ * @brief 
+ * 
+ * @param total_m_words machine words counter
+ * @return int return 1 if memory exceeded, otherwise return 0
+ */
+static int check_if_memory_exceeded(int total_m_words);
 
 
 #endif

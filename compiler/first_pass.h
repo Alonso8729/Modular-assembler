@@ -1,3 +1,5 @@
+#ifndef __FIRST_PASS_H_
+#define __FIRST_PASS_H_
 #include "assembler.h"
 
 
@@ -6,6 +8,9 @@
  * 
  * @param am_file 
  * @param obj 
- * @return obj_file return obj file if compilation succeeded,otherwise return NULL 
+ * @return obj_file return 1 if compilation succeeded,otherwise return 0
  */
-obj_file first_pass(FILE *am_file, obj_file obj);
+int first_pass(FILE *am_file, obj_file obj);
+
+
+#endif

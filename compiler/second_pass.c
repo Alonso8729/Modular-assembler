@@ -1,7 +1,7 @@
 #include "assembler.h"
 
-obj_file *second_pass(obj_file *obj, FILE *am_file) {
-  unsigned short binary_code;
+int second_pass(obj_file obj, FILE *am_file) {
+  short binary_code;
   machine_word *m_word;
   int i;
   int data_size;
@@ -23,7 +23,7 @@ obj_file *second_pass(obj_file *obj, FILE *am_file) {
           ast.operation_and_directive.ast_operations.ast_operation_all << 5;
       binary_code |= ast.operation_and_directive.ast_operand_options[0] << 9;
       m_word = create_machine_word(binary_code);
-      insert_item((*obj)->code_image, m_word);
+      insert_item(obj->code_image, m_word);
 
       /*if both operands are register we combine them into one binary machine
      word*/
@@ -36,7 +36,7 @@ obj_file *second_pass(obj_file *obj, FILE *am_file) {
         binary_code |=
             ast.operation_and_directive.ast_operation_operands[0].reg_num << 7;
         m_word = create_machine_word(binary_code);
-        insert_item((*obj)->code_image, m_word);
+        insert_item(obj->code_image, m_word);
       } else { /*for every other operands combination, we are going to loop the
                   operand's operands twice */
         for (i = 0; i < OP_MAX_NUM; i++) {
@@ -46,7 +46,7 @@ obj_file *second_pass(obj_file *obj, FILE *am_file) {
                 ast.operation_and_directive.ast_operation_operands[i].reg_num
                 << 7;
             m_word = create_machine_word(binary_code);
-            insert_item((*obj)->code_image, m_word);
+            insert_item(obj->code_image, m_word);
             break;
 
           case op_is_const_num:
@@ -54,24 +54,24 @@ obj_file *second_pass(obj_file *obj, FILE *am_file) {
                               .constant_num
                           << 2;
             m_word = create_machine_word(binary_code);
-            insert_item((*obj)->code_image, m_word);
+            insert_item(obj->code_image, m_word);
             break;
 
           case op_is_label:
             does_sym_exist =
-                find_str((*obj)->symbol_search->root,
+                find_str(obj->symbol_search->root,
                          ast.operation_and_directive.ast_operation_operands[i]
                              .label_name);
             if (does_sym_exist) {
               if (does_sym_exist->symbol_types == external) {
                 binary_code = 1;
                 m_word = create_machine_word(binary_code);
-                insert_item((*obj)->code_image, m_word);
+                insert_item(obj->code_image, m_word);
               } else if (does_sym_exist->symbol_types != entry) {
                 binary_code = (unsigned short)does_sym_exist->address << 2;
                 binary_code |= 2; /*Relocatable*/
                 m_word = create_machine_word(binary_code);
-                insert_item((*obj)->code_image, m_word);
+                insert_item(obj->code_image, m_word);
               }
             } else {
               /*PRINT ERROR The label %s is used but not defined*/
@@ -98,7 +98,7 @@ obj_file *second_pass(obj_file *obj, FILE *am_file) {
           binary_code = ast.operation_and_directive.ast_directive
                             .directive_operands.data.data[i];
           m_word = create_machine_word(binary_code);
-          insert_item((*obj)->data_image, m_word);
+          insert_item(obj->data_image, m_word);
         }
         break;
 
@@ -109,11 +109,11 @@ obj_file *second_pass(obj_file *obj, FILE *am_file) {
                          data section*/
           binary_code = *str;
           m_word = create_machine_word(binary_code);
-          insert_item((*obj)->data_image, m_word);
+          insert_item(obj->data_image, m_word);
         }
         binary_code = 0;
         m_word = create_machine_word(binary_code);
-        insert_item((*obj)->data_image, m_word);
+        insert_item(obj->data_image, m_word);
 
         break;
 
@@ -130,5 +130,6 @@ obj_file *second_pass(obj_file *obj, FILE *am_file) {
     }
   }
 
-  return comp_error_flag == 0 ? obj : NULL;
+  /*return obj file only if compilation succeeded*/
+  return comp_error_flag == 0 ? 1 : 0;
 }

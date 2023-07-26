@@ -9,7 +9,6 @@
  */
 #include "trie.h"
 
-
 /**
  * @brief helper function to deallocate all nodes memory in recurssion
  *
@@ -20,8 +19,7 @@ static void trie_free_helper(trie_node node) {
     return;
   int i;
   for (i = 0; i < ASCII_CHARS_NUM; i++) {
-    if (!node->child[i])
-      trie_free_helper(node->child[i]);
+    trie_free_helper(node->child[i]);
   }
   free(node);
 }
