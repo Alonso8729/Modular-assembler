@@ -110,7 +110,7 @@ static int check_entry_definition(obj_file obj) {
 }
 
 static int check_if_memory_exceeded(int total_m_words) {
-  return total_m_words * MACHINE_WORD_SIZE > MAX_MEMORY ? 1 : 0;
+  return total_m_words > MAX_MEMORY ? 1 : 0;
 }
 
 int compile_program(int file_count, char **file_names) {
@@ -140,10 +140,9 @@ int compile_program(int file_count, char **file_names) {
             rewind(am_file);
             if (second_pass(curr_obj, am_file)) {
               /*send to output files function*/
-
             }
             fclose(am_file);
-            free_obj_file(curr_obj); 
+            free_obj_file(curr_obj);
           }
         }
       }
