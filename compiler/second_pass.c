@@ -75,7 +75,7 @@ int second_pass(obj_file obj, FILE *am_file) {
               }
             } else {
               /*PRINT ERROR The label %s is used but not defined*/
-              printf("The label %s is used but not defined\n",
+              printf("The label %s is in line used but not defined\n",
                      ast.operation_and_directive.ast_operation_operands[i]
                          .label_name);
 

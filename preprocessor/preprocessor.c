@@ -21,7 +21,7 @@ static void *create_macro(const char *m_name) {
   else
     mcr->mcr_name[0] = '\0';
   mcr->lines_counter = 0;
-  mcr->lines=NULL;
+  mcr->lines = NULL;
   return mcr;
 }
 

@@ -1,6 +1,7 @@
 #include "first_pass.h"
 #include "assembler.h"
-static void add_to_extern_table(obj_file *obj,short address,
+#include <stdio.h>
+static void add_to_extern_table(obj_file *obj, short address,
                                 char *extern_name) {
   int i;
   obj_file curr_obj = *obj;
@@ -15,20 +16,14 @@ static void add_to_extern_table(obj_file *obj,short address,
     }
   }
   /*adding a new item to the extern table*/
-  extern_symbol* new_ext = create_extern_symbol(extern_name, address);
+  extern_symbol *new_ext = create_extern_symbol(extern_name, address);
   new_ext->call_address = create_dynamic_array(sizeof(short));
   insert_item(new_ext->call_address, &address);
   insert_item(curr_obj->extern_table, &new_ext);
   return;
 }
 
-/*
-static int check_defined_entry_labels(obj_file *obj) {
-  obj_file curr_obj = *obj;
 
-  int i;
-}
-*/
 int first_pass(FILE *am_file, obj_file obj) {
   int line_counter = 1;
   struct symbol *does_sym_exist = {0};
@@ -44,8 +39,10 @@ int first_pass(FILE *am_file, obj_file obj) {
     ast = lexer_get_ast(line_buffer);
     if (ast.ast_errors[0] != '\0') { /*check for syntax errors*/
       /*PRINT SYNTAX ERROR*/
+      printf("Syntax error: %s",ast.ast_errors);
       line_counter++;
       comp_error_flag = 1;
+      continue;
     }
     if (ast.label_name[0] != '\0') { /*check for label declaration*/
       strcpy(tmp_symbol.symbol_name, ast.label_name);
@@ -60,6 +57,8 @@ int first_pass(FILE *am_file, obj_file obj) {
             does_sym_exist->declared_line = line_counter;
           } else {
             /*ERROR: "Label was already defined."*/
+            printf("Label %s was already defind in line %d",
+                   does_sym_exist->symbol_name, does_sym_exist->declared_line);
             comp_error_flag = 1;
           }
         } else { /*symbol was not found in the symbol table*/
@@ -110,22 +109,37 @@ int first_pass(FILE *am_file, obj_file obj) {
           if (ast.operation_and_directive.ast_directive.ast_directive_all ==
               ast_directive_extern) {
             if (does_sym_exist->symbol_types == external) {
-              /*PRINT WARNING REDEFINITION, label was already defined as extern
-               */
+              /*PRINT WARNING REDEFINITION, label was already defined as
+               * extern*/
+              printf("REDEFINITION:Label %s was already defined as entry in "
+                     "line %d",
+                     does_sym_exist->symbol_name,
+                     does_sym_exist->declared_line);
+
             } else {
               /*PRINT ERROR, LABEL WAS ALREADY DEFINED IN THIS FILE AS EXTERN*/
+              printf("Label %s was already defined as extern in line %d",
+                     does_sym_exist->symbol_name,
+                     does_sym_exist->declared_line);
               comp_error_flag = 1;
             }
           } else { /*entry directive*/
             if (does_sym_exist->symbol_types == external) {
               /*PRINT ERROR, Extern label can't be defined in the same file as
                * entry*/
+              printf("Label %s was already defined as extern in line %d and "
+                     "now defined as entry",
+                     does_sym_exist->symbol_name,
+                     does_sym_exist->declared_line);
               comp_error_flag = 1;
             } else if (does_sym_exist->symbol_types == entry ||
                        does_sym_exist->symbol_types == entry_code ||
                        does_sym_exist->symbol_types == entry_data)
               /*Print warning: label was already defined as entry*/
-              printf("...");
+              printf("REDEFINITION:Label %s was already defined as entry in "
+                     "line %d",
+                     does_sym_exist->symbol_name,
+                     does_sym_exist->declared_line);
             else {
               if (does_sym_exist->symbol_types == external)
                 /*print redef warning*/
