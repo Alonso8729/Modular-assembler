@@ -23,7 +23,6 @@ static void add_to_extern_table(obj_file *obj, short address,
   return;
 }
 
-
 int first_pass(FILE *am_file, obj_file obj) {
   int line_counter = 1;
   struct symbol *does_sym_exist = {0};
@@ -39,7 +38,7 @@ int first_pass(FILE *am_file, obj_file obj) {
     ast = lexer_get_ast(line_buffer);
     if (ast.ast_errors[0] != '\0') { /*check for syntax errors*/
       /*PRINT SYNTAX ERROR*/
-      printf("Syntax error: %s",ast.ast_errors);
+      printf("Syntax error: %s\n", ast.ast_errors);
       line_counter++;
       comp_error_flag = 1;
       continue;
@@ -57,7 +56,7 @@ int first_pass(FILE *am_file, obj_file obj) {
             does_sym_exist->declared_line = line_counter;
           } else {
             /*ERROR: "Label was already defined."*/
-            printf("Label %s was already defind in line %d",
+            printf("Label %s was already defind in line %d\n",
                    does_sym_exist->symbol_name, does_sym_exist->declared_line);
             comp_error_flag = 1;
           }
@@ -76,6 +75,9 @@ int first_pass(FILE *am_file, obj_file obj) {
             does_sym_exist->declared_line = line_counter;
           } else {
             /*ERROR: "Label was already defined."*/
+            printf("REDEFINITION:Label %s was already defined as entry in "
+                   "line %d\n",
+                   does_sym_exist->symbol_name, does_sym_exist->declared_line);
             comp_error_flag = 1;
           }
 
@@ -112,13 +114,13 @@ int first_pass(FILE *am_file, obj_file obj) {
               /*PRINT WARNING REDEFINITION, label was already defined as
                * extern*/
               printf("REDEFINITION:Label %s was already defined as entry in "
-                     "line %d",
+                     "line %d\n",
                      does_sym_exist->symbol_name,
                      does_sym_exist->declared_line);
 
             } else {
               /*PRINT ERROR, LABEL WAS ALREADY DEFINED IN THIS FILE AS EXTERN*/
-              printf("Label %s was already defined as extern in line %d",
+              printf("Label %s was already defined as extern in line %d\n",
                      does_sym_exist->symbol_name,
                      does_sym_exist->declared_line);
               comp_error_flag = 1;
@@ -128,7 +130,7 @@ int first_pass(FILE *am_file, obj_file obj) {
               /*PRINT ERROR, Extern label can't be defined in the same file as
                * entry*/
               printf("Label %s was already defined as extern in line %d and "
-                     "now defined as entry",
+                     "now defined as entry\n",
                      does_sym_exist->symbol_name,
                      does_sym_exist->declared_line);
               comp_error_flag = 1;
@@ -137,16 +139,22 @@ int first_pass(FILE *am_file, obj_file obj) {
                        does_sym_exist->symbol_types == entry_data)
               /*Print warning: label was already defined as entry*/
               printf("REDEFINITION:Label %s was already defined as entry in "
-                     "line %d",
+                     "line %d\n",
                      does_sym_exist->symbol_name,
                      does_sym_exist->declared_line);
             else {
               if (does_sym_exist->symbol_types == external)
                 /*print redef warning*/
-                printf("...");
+                printf("REDEFINITION:Label %s was already defined as extern in "
+                       "line %d\n",
+                       does_sym_exist->symbol_name,
+                       does_sym_exist->declared_line);
               else {
                 /*print redef error, defined as extern and now defined is this
                  * file again*/
+                printf("Label %s was already defined as extern in line %d\n",
+                       does_sym_exist->symbol_name,
+                       does_sym_exist->declared_line);
                 comp_error_flag = 1;
               }
             }
