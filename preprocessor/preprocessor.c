@@ -81,9 +81,9 @@ static enum line_options line_detector(char *line, Macro *macro,
   }
 
   token = &line[strlen(line) - 1];
-  while (isspace(*token))
-    token--;
-  *(token + 1) = '\0';
+  while (isspace(*token) && token != line) {
+    *(token--) = '\0';
+  }
 
   Macro is_mcr_exist = find_str(mcr_search->root, line);
   *(token + 1) = '\n';
