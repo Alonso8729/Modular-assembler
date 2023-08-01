@@ -26,8 +26,8 @@ d_arr create_dynamic_array(size_t item_size) {
 
 void *insert_item(d_arr arr, void *item) {
   void *tmp;
-  if (arr->item_size == arr->capacity) {
-    arr->capacity *= 2;
+  if (arr->item_count == arr->capacity) {
+    arr->capacity = (arr->capacity) * 2;
     tmp = realloc(arr->items, arr->capacity * arr->item_size);
     if (!tmp) {           /*memory allocation failed*/
       arr->capacity /= 2; /*return to previous size*/
@@ -35,7 +35,7 @@ void *insert_item(d_arr arr, void *item) {
     }
     arr->items = tmp;
   }
-  /*use casting to be able to use aritimetics*/
+  /*using casting to be able to use aritimetics*/
   void *new_item = ((char *)arr->items) + (arr->item_count * arr->item_size);
   memcpy(new_item, item, arr->item_size);
   arr->item_count++;
@@ -53,6 +53,7 @@ void *get_item(d_arr arr, size_t index) {
 size_t get_item_count(d_arr arr) { return arr->item_count; }
 
 void destroy_dynamic_array(d_arr array) {
-  free(array->items);
+  if (array->item_count > 0)
+    free(array->items);
   free(array);
 }
