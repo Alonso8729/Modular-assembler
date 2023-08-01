@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct symbol *create_symbol(char sym_name[MAX_NAME_SIZE], short address,
+struct symbol *create_symbol(char sym_name[MAX_LABEL_LEN + 1], short address,
                              int symbol_type, int declared_line) {
   struct symbol *new_symbol = malloc(sizeof(struct symbol));
   if (new_symbol) {
@@ -19,7 +19,7 @@ struct symbol *create_symbol(char sym_name[MAX_NAME_SIZE], short address,
   exit(1);
 }
 
-struct extern_symbol *create_extern_symbol(char sym_name[MAX_NAME_SIZE],
+struct extern_symbol *create_extern_symbol(char sym_name[MAX_LABEL_LEN + 1],
                                            short address) {
   extern_symbol *new_ext = malloc(sizeof(extern_symbol));
   if (new_ext) {
@@ -45,6 +45,7 @@ machine_word *create_machine_word(short binary_code) {
 obj_file create_obj_file() {
   obj_file new_obj = malloc(sizeof(struct object_file));
   new_obj->symbol_table = create_dynamic_array(sizeof(struct symbol));
+  new_obj->symbol_search = NULL;
   new_obj->symbol_search = create_trie();
   new_obj->code_image = create_dynamic_array(sizeof(machine_word));
   new_obj->data_image = create_dynamic_array(sizeof(machine_word));
@@ -89,10 +90,15 @@ void free_obj_file(obj_file obj) {
   destroy_dynamic_array(obj->code_image);
   destroy_dynamic_array(obj->data_image);
   destroy_extern_table(&obj->extern_table);
-  destroy_dynamic_array(obj->extern_table);
   free(obj);
 }
 
+/**
+ * @brief
+ *
+ * @param obj
+ * @return int return 0 if there is no error, otherwise return 1
+ */
 static int check_entry_definition(obj_file obj) {
   int error = 0;
   int i;
@@ -109,6 +115,12 @@ static int check_entry_definition(obj_file obj) {
   return error;
 }
 
+/**
+ * @brief
+ *
+ * @param total_m_words machine words counter
+ * @return int return 1 if memory exceeded, otherwise return 0
+ */
 static int check_if_memory_exceeded(int total_m_words) {
   return total_m_words > MAX_MEMORY ? 1 : 0;
 }
