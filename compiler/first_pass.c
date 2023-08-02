@@ -2,7 +2,7 @@
 #include "assembler.h"
 #include <stdio.h>
 
-static void add_to_extern_table(obj_file *obj, short address,
+static void add_to_extern_table(obj_file *obj, int address,
                                 char *extern_name) {
   int i;
   obj_file curr_obj = *obj;
@@ -18,9 +18,9 @@ static void add_to_extern_table(obj_file *obj, short address,
   }
   /*adding a new item to the extern table*/
   extern_symbol *new_ext = create_extern_symbol(extern_name, address);
-  new_ext->call_address = create_dynamic_array(sizeof(short));
+  new_ext->call_address = create_dynamic_array(sizeof(int));
   insert_item(new_ext->call_address, &address);
-  insert_item(curr_obj->extern_table, &new_ext);
+  insert_item(curr_obj->extern_table, new_ext);
   return;
 }
 
@@ -32,7 +32,7 @@ int first_pass(FILE *am_file, obj_file obj) {
   syntax_tree ast;
   char str[MAX_LINE];
   int data_count;
-  unsigned short IC = 0, DC = 0; /*instructions counter, data counter*/
+  int IC = 0, DC = 0; /*instructions counter, data counter*/
   int comp_error_flag = 0;
   int i;
   while (fgets(line_buffer, MAX_LINE, am_file)) {
@@ -49,7 +49,7 @@ int first_pass(FILE *am_file, obj_file obj) {
       does_sym_exist =
           find_str(obj->symbol_search->root, tmp_symbol.symbol_name);
       if (ast.syntax_tree_options == syntax_tree_directive) {
-        if (does_sym_exist) { /*symbol exist in the symbol table*/
+        if (does_sym_exist) { /*Label exists in the symbol table*/
           if (does_sym_exist->symbol_types ==
               entry) { /*definition after entry declaration */
             does_sym_exist->symbol_types = entry_data;
@@ -61,7 +61,7 @@ int first_pass(FILE *am_file, obj_file obj) {
                    does_sym_exist->symbol_name, does_sym_exist->declared_line);
             comp_error_flag = 1;
           }
-        } else { /*symbol was not found in the symbol table*/
+        } else { /*Label was not found in the symbol table*/
           tmp_symbol.symbol_types = data;
           tmp_symbol.address = IC + DC + BASE_ADDRESS;
           tmp_symbol.declared_line = line_counter;
@@ -154,12 +154,10 @@ int first_pass(FILE *am_file, obj_file obj) {
                        does_sym_exist->symbol_name,
                        does_sym_exist->declared_line);
               else {
-                /*print redef error, defined as extern and now defined is this
-                 * file again*/
-                printf("Label %s was already defined as extern in line %d\n",
-                       does_sym_exist->symbol_name,
-                       does_sym_exist->declared_line);
-                comp_error_flag = 1;
+                /*Label was define as data or code and now declared*/
+                does_sym_exist->symbol_types =
+                    does_sym_exist->symbol_types == code ? entry_code
+                                                         : entry_data;
               }
             }
           }
@@ -197,11 +195,13 @@ int first_pass(FILE *am_file, obj_file obj) {
           case op_is_label:
             IC++;
             strcpy(tmp_symbol.symbol_name,
-                   ast.label_name);
+                   ast.instruction_or_directive.syntax_tree_instruction
+                       .syntax_tree_instruction_operands[i]
+                       .label);
             does_sym_exist =
                 find_str(obj->symbol_search->root, tmp_symbol.symbol_name);
             if (does_sym_exist && does_sym_exist->symbol_types == external)
-              add_to_extern_table(&obj, IC + BASE_ADDRESS,
+              add_to_extern_table(&obj, IC + BASE_ADDRESS - 1,
                                   does_sym_exist->symbol_name);
             break;
           case op_is_register:
@@ -219,6 +219,7 @@ int first_pass(FILE *am_file, obj_file obj) {
       break;
     }
     line_counter++;
+    memset(line_buffer, 0, sizeof(line_buffer)); /*clean buffer*/
   }
 
   /*return obj file only if compilation succeeded*/
