@@ -1,6 +1,7 @@
 #include "first_pass.h"
 #include "assembler.h"
 #include <stdio.h>
+
 static void add_to_extern_table(obj_file *obj, short address,
                                 char *extern_name) {
   int i;
@@ -28,17 +29,17 @@ int first_pass(FILE *am_file, obj_file obj) {
   struct symbol *does_sym_exist = {0};
   struct symbol tmp_symbol = {0};
   char line_buffer[MAX_LINE] = {0};
-  Ast ast;
+  syntax_tree ast;
   char str[MAX_LINE];
   int data_count;
   unsigned short IC = 0, DC = 0; /*instructions counter, data counter*/
   int comp_error_flag = 0;
   int i;
   while (fgets(line_buffer, MAX_LINE, am_file)) {
-    ast = lexer_get_ast(line_buffer);
-    if (ast.ast_errors[0] != '\0') { /*check for syntax errors*/
+    ast = get_tree_from_line(line_buffer);
+    if (ast.syntax_error[0] != '\0') { /*check for syntax errors*/
       /*PRINT SYNTAX ERROR*/
-      printf("Syntax error: %s\n", ast.ast_errors);
+      printf("Syntax error: %s\n", ast.syntax_error);
       line_counter++;
       comp_error_flag = 1;
       continue;
@@ -47,7 +48,7 @@ int first_pass(FILE *am_file, obj_file obj) {
       strcpy(tmp_symbol.symbol_name, ast.label_name);
       does_sym_exist =
           find_str(obj->symbol_search->root, tmp_symbol.symbol_name);
-      if (ast.ast_options == ast_directive) {
+      if (ast.syntax_tree_options == syntax_tree_directive) {
         if (does_sym_exist) { /*symbol exist in the symbol table*/
           if (does_sym_exist->symbol_types ==
               entry) { /*definition after entry declaration */
@@ -64,10 +65,12 @@ int first_pass(FILE *am_file, obj_file obj) {
           tmp_symbol.symbol_types = data;
           tmp_symbol.address = IC + DC + BASE_ADDRESS;
           tmp_symbol.declared_line = line_counter;
+          void *end_of_word;
+          end_of_word = insert_item(obj->symbol_table, &tmp_symbol);
           insert_to_trie(tmp_symbol.symbol_name, obj->symbol_search->root,
-                         insert_item(obj->symbol_table, &tmp_symbol));
+                         end_of_word);
         }
-      } else if (ast.ast_options == ast_operation) {
+      } else if (ast.syntax_tree_options == syntax_tree_instruction) {
         if (does_sym_exist) {
           if (does_sym_exist->symbol_types == entry) {
             does_sym_exist->symbol_types = entry_code;
@@ -91,25 +94,26 @@ int first_pass(FILE *am_file, obj_file obj) {
       }
     } /*end of symbol insertion*/
     /*check for addressing type and increment IC and DC accordingly*/
-    switch (ast.ast_options) {
-    case ast_directive:
-      if (ast.operation_and_directive.ast_directive.ast_directive_all ==
-          ast_directive_data) {
-        data_count = ast.operation_and_directive.ast_directive
-                         .directive_operands.data.data_count;
+    switch (ast.syntax_tree_options) {
+    case syntax_tree_directive:
+      if (ast.instruction_or_directive.syntax_tree_directive
+              .directive_options == directive_data) {
+        data_count = ast.instruction_or_directive.syntax_tree_directive
+                         .directive_operand.data.data_count;
         DC += data_count;
-      } else if (ast.operation_and_directive.ast_directive.ast_directive_all ==
-                 ast_directive_string) {
-        strcpy(str, ast.operation_and_directive.ast_directive.directive_operands
-                        .string);
+      } else if (ast.instruction_or_directive.syntax_tree_directive
+                     .directive_options == directive_string) {
+        strcpy(str, ast.instruction_or_directive.syntax_tree_directive
+                        .directive_operand.string);
         IC += strlen(str);
       } else { /*entry or extern*/
-        does_sym_exist = find_str(obj->symbol_search->root,
-                                  ast.operation_and_directive.ast_directive
-                                      .directive_operands.label_name);
+        does_sym_exist =
+            find_str(obj->symbol_search->root,
+                     ast.instruction_or_directive.syntax_tree_directive
+                         .directive_operand.label_name);
         if (does_sym_exist) {
-          if (ast.operation_and_directive.ast_directive.ast_directive_all ==
-              ast_directive_extern) {
+          if (ast.instruction_or_directive.syntax_tree_directive
+                  .directive_options == directive_extern) {
             if (does_sym_exist->symbol_types == external) {
               /*PRINT WARNING REDEFINITION, label was already defined as
                * extern*/
@@ -161,11 +165,11 @@ int first_pass(FILE *am_file, obj_file obj) {
           }
         } else {
           strcpy(tmp_symbol.symbol_name,
-                 ast.operation_and_directive.ast_directive.directive_operands
-                     .label_name);
+                 ast.instruction_or_directive.syntax_tree_directive
+                     .directive_operand.label_name);
           tmp_symbol.symbol_types =
-              ast.operation_and_directive.ast_directive.ast_directive_all ==
-                      ast_directive_entry
+              ast.instruction_or_directive.syntax_tree_directive
+                          .directive_options == directive_entry
                   ? entry
                   : external; /*update */
           tmp_symbol.declared_line = line_counter;
@@ -177,22 +181,23 @@ int first_pass(FILE *am_file, obj_file obj) {
       }
       break;
 
-    case ast_operation:
-      IC++; /*incremeting IC for the operation's binary code*/
+    case syntax_tree_instruction:
+      IC++; /*incremeting IC for the instruction's binary code*/
       /*if both operands are register we combine them into one binary machine
        * code*/
-      if (ast.operation_and_directive.ast_operand_options[0] ==
-              op_is_register &&
-          ast.operation_and_directive.ast_operand_options[0] == op_is_register)
+      if (ast.instruction_or_directive.syntax_tree_instruction
+                  .syntax_tree_operand_options[0] == op_is_register &&
+          ast.instruction_or_directive.syntax_tree_instruction
+                  .syntax_tree_operand_options[1] == op_is_register)
         IC++;
       else { /*every other combination of operands*/
         for (i = 0; i < OP_MAX_NUM; i++) {
-          switch (ast.operation_and_directive.ast_operand_options[i]) {
+          switch (ast.instruction_or_directive.syntax_tree_instruction
+                      .syntax_tree_operand_options[i]) {
           case op_is_label:
             IC++;
             strcpy(tmp_symbol.symbol_name,
-                   ast.operation_and_directive.ast_directive.directive_operands
-                       .label_name);
+                   ast.label_name);
             does_sym_exist =
                 find_str(obj->symbol_search->root, tmp_symbol.symbol_name);
             if (does_sym_exist && does_sym_exist->symbol_types == external)
@@ -209,7 +214,8 @@ int first_pass(FILE *am_file, obj_file obj) {
         }
       }
       break;
-    case ast_empty_line:
+
+    default:
       break;
     }
     line_counter++;
