@@ -2,8 +2,7 @@
 #include "assembler.h"
 #include <stdio.h>
 
-static void add_to_extern_table(obj_file *obj, int address,
-                                char *extern_name) {
+static void add_to_extern_table(obj_file *obj, int address, char *extern_name) {
   int i;
   obj_file curr_obj = *obj;
   int table_size = get_item_count(curr_obj->extern_table);
@@ -42,6 +41,7 @@ int first_pass(FILE *am_file, obj_file obj) {
       printf("Syntax error: %s\n", ast.syntax_error);
       line_counter++;
       comp_error_flag = 1;
+      memset(line_buffer, 0, sizeof(line_buffer)); /*clean buffer*/
       continue;
     }
     if (ast.label_name[0] != '\0') { /*check for label declaration*/
