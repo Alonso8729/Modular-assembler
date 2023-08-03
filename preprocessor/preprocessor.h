@@ -1,6 +1,6 @@
 #ifndef _PREPROCCESSOR_H
 #define _PREPROCCESSOR_H
-#include "../data_structures/table/table.h"
+#include "../data_structures/dynamic_array/dynamic_array.h"
 #include "../data_structures/trie/trie.h"
 #include <ctype.h>
 #include <stddef.h>
@@ -33,17 +33,12 @@ struct macro {
 
 typedef struct macro *Macro;
 /**
- * @brief read input from .as file, spread macro if exist and paste it in .am file
- * 
+ * @brief read input from .as file, spread macro if exist and paste it in .am
+ * file
+ *
  * @param file_name as file name
  * @return const char* return am file name
  */
-const char* preprocess(const char* file_name);
-
-
-
-
-
-
+const char *preprocess(const char *file_name);
 
 #endif

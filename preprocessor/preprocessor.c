@@ -115,10 +115,12 @@ const char *preprocess(const char *input_file_name) {
   strcat(am_file_name, AM_FILE_EXT);
 
   /*open .as file for reading and .am file for writing*/
-  FILE *as_file = fopen(as_file_name, "r");
-  FILE *am_file = fopen(am_file_name, "w");
+  FILE *as_file;
+  as_file = fopen(as_file_name, "r");
+  FILE *am_file;
+  am_file = fopen(am_file_name, "w");
   if (!as_file || !am_file) {
-    perror("Failed to open the .as file\n");
+    printf("Failed to open file\n");
     free(am_file_name);
     free(as_file_name);
     return NULL;
