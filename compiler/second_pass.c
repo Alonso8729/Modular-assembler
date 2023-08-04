@@ -120,9 +120,11 @@ int second_pass(obj_file obj, FILE *am_file) {
       case directive_string:
         strcpy(str, ast.instruction_or_directive.syntax_tree_directive
                         .directive_operand.string);
-        while (*str) { /*each character is a binary code word inserted to the
+        int str_length=strlen(str);
+        
+        for(i=0; i<str_length; i++) { /*each character is a binary code word inserted to the
                          data section*/
-          binary_code = *str;
+          binary_code = str[i];
           m_word = create_machine_word(binary_code);
           insert_item(obj->data_image, m_word);
         }
