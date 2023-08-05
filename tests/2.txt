@@ -1,0 +1,14 @@
+.entry START
+.extern X
+MAIN: mov @r5 ,START
+LOOP1: lea STR1, @r2
+cmp @r2, #5
+prn 
+clr @r3
+inc M
+.entry LOOP1
+red X
+STRING1: .string "qwerty"
+START: .data 10,-2,5
+M: .data 15
+.extern Y

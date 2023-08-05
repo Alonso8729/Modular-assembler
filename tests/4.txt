@@ -1,0 +1,16 @@
+.entry COUNT
+.extern A
+INIT: sub @r2 ,COUNT
+LOOP3: ror @r8
+cmp L, #0
+bne EXIT
+inc O
+clr @r1
+.entry LOOP3
+jmp A
+END: stop "fd"
+STR3: .string "hijklmnop"
+COUNT: .data 9,-4,3
+L: .data 11
+O: .data 19
+.extern B

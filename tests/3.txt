@@ -1,0 +1,16 @@
+.entry SIZE
+.extern Z
+BEGIN: add @r1 ,SIZE
+LOOP2: not @r6
+cmp K, #-1
+bne END2
+dec @r7
+clr N
+.entry LOOP2
+sub @r7, @r3
+THEEND: stop
+STR2: .string "abcdefg"
+SIZE: .data 6,-3,8
+K: .data 7
+N: .data 20
+.extern L6
