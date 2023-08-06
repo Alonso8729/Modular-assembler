@@ -28,14 +28,14 @@ static void *create_macro(const char *m_name) {
 static void destroy_mcr(Macro m) {
   if (!m)
     return;
-  Macro tmp = m;
-  int line_count = m->lines_counter;
+  int line_count;/*used for debug purposses*/
+  line_count = m->lines_counter;
   int i;
   for (i = 0; i < line_count; i++) {
     free(m->lines[i]); /* Free the memory allocated for each line*/
   }
   free(m->lines); /* Free the memory allocated for the lines array */
-  free(tmp);
+  free(m);
 }
 
 static enum line_options line_detector(char *line, Macro *macro,
@@ -97,6 +97,7 @@ static enum line_options line_detector(char *line, Macro *macro,
 const char *preprocess(const char *input_file_name) {
   /*variable declaration*/
   Macro macro = NULL;
+  int line_counter = 1;
   Trie mcr_search = NULL;
   int mcr_flag = 0;
   d_arr macro_table = NULL;
@@ -127,7 +128,6 @@ const char *preprocess(const char *input_file_name) {
   }
 
   /*creating data structures*/
-  macro = create_macro(NULL);
   mcr_search = create_trie();
   if (!mcr_search) {
     printf("Failed to create trie\n");
