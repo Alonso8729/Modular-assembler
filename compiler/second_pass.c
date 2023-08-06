@@ -79,6 +79,8 @@ int second_pass(obj_file obj, FILE *am_file) {
                 binary_code = 1;
                 m_word = create_machine_word(binary_code);
                 insert_item(obj->code_image, m_word);
+                add_to_extern_table(&obj, get_item_count(obj->code_image) + BASE_ADDRESS - 1,
+                                  does_sym_exist->symbol_name);
               } else if (does_sym_exist->symbol_types != entry) {
                 binary_code = does_sym_exist->address << 2;
                 binary_code |= 2; /*Relocatable*/
