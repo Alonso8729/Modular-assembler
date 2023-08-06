@@ -2,26 +2,6 @@
 #include "assembler.h"
 #include <stdio.h>
 
-static void add_to_extern_table(obj_file *obj, int address, char *extern_name) {
-  int i;
-  obj_file curr_obj = *obj;
-  int table_size = get_item_count(curr_obj->extern_table);
-  /*search for extern name in the extern table*/
-  for (i = 0; i < table_size; i++) {
-    struct extern_table *curr_ext;
-    curr_ext = get_item(curr_obj->extern_table, i);
-    if (strcmp(extern_name, curr_ext->extern_name) == 0) {
-      insert_item(curr_ext->call_address, &address);
-      return;
-    }
-  }
-  /*adding a new item to the extern table*/
-  extern_symbol *new_ext = create_extern_symbol(extern_name, address);
-  new_ext->call_address = create_dynamic_array(sizeof(int));
-  insert_item(new_ext->call_address, &address);
-  insert_item(curr_obj->extern_table, new_ext);
-  return;
-}
 
 int first_pass(FILE *am_file, obj_file obj) {
   int line_counter = 1;
@@ -42,7 +22,7 @@ int first_pass(FILE *am_file, obj_file obj) {
       line_counter++;
       comp_error_flag = 1;
       memset(line_buffer, 0, sizeof(line_buffer)); /*clean buffer*/
-      continue;
+     continue;  
     }
     if (ast.label_name[0] != '\0') { /*check for label declaration*/
       strcpy(tmp_symbol.symbol_name, ast.label_name);
@@ -78,7 +58,7 @@ int first_pass(FILE *am_file, obj_file obj) {
             does_sym_exist->declared_line = line_counter;
           } else {
             /*ERROR: "Label was already defined."*/
-            printf("REDEFINITION:Label %s was already defined as entry in "
+            printf("REDEFINITION:Label %s was already defined in "
                    "line %d\n",
                    does_sym_exist->symbol_name, does_sym_exist->declared_line);
             comp_error_flag = 1;
@@ -105,7 +85,7 @@ int first_pass(FILE *am_file, obj_file obj) {
                      .directive_options == directive_string) {
         strcpy(str, ast.instruction_or_directive.syntax_tree_directive
                         .directive_operand.string);
-        IC += strlen(str);
+        IC += strlen(str)+1; /*+1 for null terminator*/
       } else { /*entry or extern*/
         does_sym_exist =
             find_str(obj->symbol_search->root,
@@ -169,9 +149,8 @@ int first_pass(FILE *am_file, obj_file obj) {
               ast.instruction_or_directive.syntax_tree_directive
                           .directive_options == directive_entry
                   ? entry
-                  : external; /*update */
+                  : external; 
           tmp_symbol.declared_line = line_counter;
-          tmp_symbol.address = 0;
           /*need to update extern_call or entry call address*/
           insert_to_trie(tmp_symbol.symbol_name, obj->symbol_search->root,
                          insert_item(obj->symbol_table, &tmp_symbol));
@@ -193,17 +172,6 @@ int first_pass(FILE *am_file, obj_file obj) {
           switch (ast.instruction_or_directive.syntax_tree_instruction
                       .syntax_tree_operand_options[i]) {
           case op_is_label:
-            IC++;
-            strcpy(tmp_symbol.symbol_name,
-                   ast.instruction_or_directive.syntax_tree_instruction
-                       .syntax_tree_instruction_operands[i]
-                       .label);
-            does_sym_exist =
-                find_str(obj->symbol_search->root, tmp_symbol.symbol_name);
-            if (does_sym_exist && does_sym_exist->symbol_types == external)
-              add_to_extern_table(&obj, IC + BASE_ADDRESS - 1,
-                                  does_sym_exist->symbol_name);
-            break;
           case op_is_register:
           case op_is_const_num:
             IC++; /*one machine word for each case*/
