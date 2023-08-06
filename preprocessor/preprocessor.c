@@ -201,6 +201,7 @@ const char *preprocess(const char *input_file_name) {
       break;
     }
     memset(linebuffer, 0, sizeof(linebuffer));
+    line_counter++;
   }
 
   /*deallocate memory from data structures and file pointers*/
