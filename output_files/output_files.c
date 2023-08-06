@@ -54,7 +54,7 @@ static void ext_file_output(obj_file obj, const char *file_name) {
   ext_file_name = malloc(file_name_length + strlen(EXT_FILE) +
                          1); /*adding +1 for null terminator*/
   strcpy(ext_file_name, file_name);
-  strcat(ext_file_name, ENT_FILE);
+  strcat(ext_file_name, EXT_FILE);
   FILE *ext_file;
   ext_file = fopen(ext_file_name, "w");
   if (!ext_file) {
@@ -99,7 +99,7 @@ static void decimal_to_base64(int decimal, char *base64) {
 }
 
 /** create .ob file with the size of data and code images, and base64 converted
- *machine words taken from code and data images
+ * machine words taken from code and data images
  * @brief
  *
  * @param obj
@@ -113,7 +113,7 @@ static void ob_file_output(obj_file obj, const char *file_name) {
   ob_file_name = malloc(file_name_length + strlen(OB_FILE) +
                         1); /*adding +1 for null terminator*/
   strcpy(ob_file_name, file_name);
-  strcat(ob_file_name, ENT_FILE);
+  strcat(ob_file_name, OB_FILE);
   FILE *ob_file;
   ob_file = fopen(ob_file_name, "w");
   if (!ob_file) {
@@ -176,7 +176,7 @@ static int check_if_entry_exists(obj_file obj) {
 void output_all_files(obj_file obj, const char *file_name) {
   /*if there are entries, make .ent file*/
   if (check_if_entry_exists(obj))
-    ext_file_output(obj, file_name);
+    ent_file_output(obj, file_name);
   /*if there are extern symbols, make .ext file*/
   if (get_item_count(obj->extern_table) > 0)
     ext_file_output(obj, file_name);
