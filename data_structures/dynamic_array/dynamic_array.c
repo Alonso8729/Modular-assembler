@@ -7,13 +7,13 @@
  * @copyright Copyright (c) 2023
  *
  */
-#include "table.h"
+#include "dynamic_array.h"
 
-d_arr create_dynamic_array(size_t item_size) {
+d_arr create_dynamic_array(int item_size) {
   d_arr da = malloc(sizeof(struct dynamic_array));
   if (!da)
     return NULL; /*memory allocation failed*/
-  da->capacity = 4;
+  da->capacity = 32;
   da->item_size = item_size;
   da->item_count = 0;
   da->items = malloc(da->capacity * da->item_size);
@@ -43,17 +43,18 @@ void *insert_item(d_arr arr, void *item) {
   return new_item;
 }
 
-void *get_item(d_arr arr, size_t index) {
+void *get_item(d_arr arr, int index) {
   if (index >= arr->item_count) {
     return NULL; /*invalid index*/
   }
   return (void *)((char *)arr->items + (index * arr->item_size));
 }
 
-size_t get_item_count(d_arr arr) { return arr->item_count; }
+int get_item_count(d_arr arr) { return arr->item_count; }
 
 void destroy_dynamic_array(d_arr array) {
-  if (array->item_count > 0)
+  if (array->item_count > 0){
     free(array->items);
+  }  
   free(array);
 }
