@@ -1,7 +1,7 @@
 #ifndef __SECOND_PASS_H_
 #define __SECOND_PASS_H_
 #include "assembler.h"
-
+#include "first_pass.h"
 
 /**
  * @brief 
