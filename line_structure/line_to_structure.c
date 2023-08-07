@@ -1,7 +1,7 @@
 /* for each line the syntax_tree returns an abstract syntax tree which
  * represents a structure for a given line */
 
-#include "line_to_structure.h"
+#include "../line_structure/line_to_structure.h"
 #include "../data_structures/trie/trie.h"
 #include <ctype.h>
 #include <errno.h>
@@ -31,11 +31,17 @@ enum label_err_options {
   Contains_Non_Alphanumeric,
   Exceeds_Max_Length
 };
-static enum label_err_options check_label(const char *label) {
-  /* checks if the label starts with an alphabetic character.
+
+/**
+ * @brief checks if the label starts with an alphabetic character.
   then goes through each character of the label to ensure it is alphanumeric.
   if the label's length exceeds MAX_LABEL_LEN, it returns Exceeds_Max_Length.
-  if none of these errors occur, it returns Valid_Label. */
+  if none of these errors occur, it returns Valid_Label
+ *
+ * @param label
+ * @return enum label_err_options
+ */
+static enum label_err_options check_label(const char *label) {
   const char *start = label;
   if (!isalpha(*label))
     return Begins_With_Non_Alpha;
@@ -46,10 +52,18 @@ static enum label_err_options check_label(const char *label) {
   return (label - start > MAX_LABEL_LEN) ? Exceeds_Max_Length : Valid_Label;
 }
 
+/**
+ * @brief checks for overflow or underflow by comparing the result against the
+ * provided limits.
+ * @param input_str
+ * @param final_ptr
+ * @param val
+ * @param lower_limit
+ * @param upper_limit
+ * @return int
+ */
 static int check_numeric(const char *input_str, char **final_ptr, long *val,
                          long lower_limit, long upper_limit) {
-  /*checks for overflow or underflow by comparing the result against the
-   * provided limits. */
   char *temp_ptr;
   *val = strtol(input_str, &temp_ptr, 10);
   while (isspace(*temp_ptr))
@@ -63,15 +77,23 @@ static int check_numeric(const char *input_str, char **final_ptr, long *val,
   return 0;
 }
 
-static char check_operand(char *operand_txt, char **label, int *const_num,
-                          int *reg_num) {
-  /*check_operand returns: I - immediate
+/**
+ * @brief *check_operand returns: I - immediate
                            L - lable
                            R - register
                            N - unknown
                            E - empty
                            F - constant number overflow
-  when get_tree_from_line gets this, it display related errors if needed*/
+  when get_tree_from_line gets this, it display related errors if needed
+ *
+ * @param operand_txt
+ * @param label
+ * @param const_num
+ * @param reg_num
+ * @return char
+ */
+static char check_operand(char *operand_txt, char **label, int *const_num,
+                          int *reg_num) {
   char *aux;
   long num;
   int result;
@@ -125,12 +147,15 @@ static struct directive_opt {
     {"data", directive_data},
 };
 
+/**
+ * @brief I - Immediate = 1, L - Label = 3, R - Registers = 5
+  according to mentioned table in the course booklet, following are valid
+  methods of addressing for each operand
+ *
+ */
 static struct instruction_opt {
   const char *inst_name;
   int key;
-  /*I - Immediate = 1, L - Label = 3, R - Registers = 5
-  according to mentioned table in the course booklet, following are valid
-  methods of addressing for each operand*/
   const char *src_operand_options;
   const char *dst_operand_options;
 } instruction_opt[16] = {
@@ -154,8 +179,13 @@ static struct instruction_opt {
     {"stop", syntax_tree_inst_stop, NULL, NULL},
 };
 
+/**
+ * @brief initializes one tree for instructions and one for directives
+ *
+ * @param instruction_lookup
+ * @param directive_lookup
+ */
 static void trie_init(Trie *instruction_lookup, Trie *directive_lookup) {
-  /* initializes one tree for instructions and one for directives.*/
   int i;
   *instruction_lookup = create_trie();
   *directive_lookup = create_trie();
@@ -170,21 +200,39 @@ static void trie_init(Trie *instruction_lookup, Trie *directive_lookup) {
   }
 }
 
+/**
+ * @brief deallocate memory of both instruction and directive trie
+ *
+ * @param instruction_lookup
+ * @param directive_lookup
+ */
 static void clean_mem_trie(Trie instruction_lookup, Trie directive_lookup) {
   trie_destroy(directive_lookup);
   trie_destroy(instruction_lookup);
 }
 
-static void handle_error(syntax_tree *st, const char *msg, char *operand_string,
+/**
+ * @brief writes an error message into the syntax tree's error string
+ *
+ * @param st
+ * @param msg
+ * @param operand_txt
+ * @param inst_name
+ */
+static void handle_error(syntax_tree *st, const char *msg, char *operand_txt,
                          const char *inst_name) {
-  /*writes an error message into the syntax tree's error string*/
-  sprintf(st->syntax_error, msg, inst_name, operand_string);
+  sprintf(st->syntax_error, msg, inst_name, operand_txt);
 }
 
+/**
+ * @brief assigns an operand type to a specific index in the syntax tree's array
+ * of operand options
+ * @param st
+ * @param index
+ * @param operand_opt
+ */
 static void assign_operand_option(syntax_tree *st, int index,
                                   char operand_opt) {
-  /*assigns an operand type to a specific index in the syntax tree's array of
-   * operand options.*/
   st->instruction_or_directive.syntax_tree_instruction
       .syntax_tree_operand_options[index] = operand_opt == 'I' ? op_is_const_num
                                             : operand_opt == 'R'
@@ -192,14 +240,19 @@ static void assign_operand_option(syntax_tree *st, int index,
                                                 : op_is_label;
 }
 
+/**
+ * @brief checks if the instruction expects one or two operands and validates the
+  operands and assigns them to the syntax tree. generating relevant errors
+ * @param st 
+ * @param operands_string 
+ * @param optI 
+ */
 static void instruction_error_handler(syntax_tree *st, char *operands_string,
                                       struct instruction_opt *optI) {
-  /* checks if the instruction expects one or two operands and validates the
-  operands and assigns them to the syntax tree. generating relevant errors*/
   char operand_opt;
-  char *sep = strchr(operands_string, ',');
-  if (sep) {
-    if (strchr(sep + 1, ',')) {
+  char *splitter = strchr(operands_string, ',');
+  if (splitter) {
+    if (strchr(splitter + 1, ',')) {
       handle_error(st, "Detected multiple ',' separators.", NULL, NULL);
       return;
     }
@@ -210,7 +263,7 @@ static void instruction_error_handler(syntax_tree *st, char *operands_string,
           NULL, optI->inst_name);
       return;
     }
-    *sep = '\0';
+    *splitter = '\0';
 
     operand_opt =
         check_operand(operands_string,
@@ -229,14 +282,13 @@ static void instruction_error_handler(syntax_tree *st, char *operands_string,
       return;
     }
     if (strchr(optI->src_operand_options, operand_opt) == NULL) {
-      handle_error(
-          st, "instruction '%s' with source operand '%s' doesn't supported",
-          operands_string, optI->inst_name);
+      handle_error(st, "instruction '%s' with non valid source operand '%s'",
+                   operands_string, optI->inst_name);
       return;
     }
     assign_operand_option(st, 0, operand_opt);
 
-    operands_string = sep + 1;
+    operands_string = splitter + 1;
 
     operand_opt =
         check_operand(operands_string,
@@ -255,10 +307,9 @@ static void instruction_error_handler(syntax_tree *st, char *operands_string,
       return;
     }
     if (strchr(optI->dst_operand_options, operand_opt) == NULL) {
-      handle_error(
-          st,
-          "instruction '%s' with destination operand '%s' doesn't supported",
-          operands_string, optI->inst_name);
+      handle_error(st,
+                   "instruction '%s' with non valid destination operand '%s'",
+                   operands_string, optI->inst_name);
       return;
     }
     assign_operand_option(st, 1, operand_opt);
@@ -290,19 +341,24 @@ static void instruction_error_handler(syntax_tree *st, char *operands_string,
       return;
     }
     if (strchr(optI->dst_operand_options, operand_opt) == NULL) {
-      handle_error(
-          st,
-          "instruction '%s' with destination operand '%s' doesn't supported",
-          operands_string, optI->inst_name);
+      handle_error(st,
+                   "instruction '%s' with non valid destination operand '%s'",
+                   operands_string, optI->inst_name);
       return;
     }
     assign_operand_option(st, 1, operand_opt);
   }
 }
 
+/**
+ * @brief checks the type of directive and validates its operand
+ * 
+ * @param st 
+ * @param operands_string 
+ * @param optD 
+ */
 static void check_directive(syntax_tree *st, char *operands_string,
                             struct directive_opt *optD) {
-  /*checks the type of directive and validates its operand*/
   char *split, *split2;
   int curr_num;
   if (optD->key <= directive_entry) {
@@ -351,10 +407,10 @@ static void check_directive(syntax_tree *st, char *operands_string,
                 optD->directive_name, operands_string);
         return;
       case 'E':
-        sprintf(st->syntax_error,
-                "directive: '%s' : got empty string (no operands) but expected "
-                "immediate number.",
-                optD->directive_name);
+        sprintf(
+            st->syntax_error,
+            "directive: '%s' : got empty string but expected immediate number.",
+            optD->directive_name);
         return;
       default:
         sprintf(st->syntax_error,
@@ -367,8 +423,13 @@ static void check_directive(syntax_tree *st, char *operands_string,
   }
 }
 
+/**
+ * @brief converts a logical line of code into a syntax tree
+ * 
+ * @param logical_line 
+ * @return syntax_tree 
+ */
 syntax_tree get_tree_from_line(char *logical_line) {
-  /*converts a logical line of code into a syntax tree.*/
   syntax_tree st = {0};
   enum label_err_options labelErr;
   struct instruction_opt *optI = NULL;
